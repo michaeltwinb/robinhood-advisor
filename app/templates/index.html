@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-  <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+          onerror="this.onerror=null;this.src='{{ url_for('static', filename='vendor/chart.umd.js') }}'"></script>
 </head>
 <body>
   <header class="topbar">

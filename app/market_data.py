@@ -144,21 +144,44 @@ def get_news(symbol: str, limit: int = 6) -> list[dict]:
     return _cached(f"news:{symbol}", build, ttl=900) or []
 
 
+def _extract_close(data, symbol: str, single: bool) -> list[float]:
+    """Pull Close prices from a yfinance DataFrame regardless of column layout."""
+    import pandas as pd
+    cols = data.columns
+    if isinstance(cols, pd.MultiIndex):
+        for key in (("Close", symbol), (symbol, "Close")):
+            if key in cols:
+                return [round(float(v), 4) for v in data[key].dropna()]
+        try:
+            return [round(float(v), 4) for v in data[symbol]["Close"].dropna()]
+        except Exception:
+            return []
+    if single and "Close" in cols:
+        return [round(float(v), 4) for v in data["Close"].dropna()]
+    for candidate in (f"Close_{symbol}", symbol):
+        if candidate in cols:
+            col = data[candidate]
+            s = col["Close"] if hasattr(col, "columns") and "Close" in col.columns else col
+            return [round(float(v), 4) for v in s.dropna()]
+    return []
+
+
 def batch_closes(symbols: list[str], period: str = "1mo") -> dict[str, list[float]]:
     """Closing prices for many tickers in one request -> {symbol: [closes]}."""
     def build():
-        data = yf.download(
-            symbols, period=period, interval="1d",
-            progress=False, group_by="ticker", auto_adjust=True, threads=True,
-        )
+        kwargs = dict(period=period, interval="1d", progress=False)
+        try:
+            data = yf.download(symbols, **kwargs, multi_level_index=False)
+        except TypeError:
+            data = yf.download(symbols, **kwargs, group_by="ticker")
+        if data.empty:
+            return {}
         out: dict[str, list[float]] = {}
+        single = len(symbols) == 1
         for s in symbols:
-            try:
-                closes = data[s]["Close"].dropna().tolist()
-            except Exception:
-                closes = []
+            closes = _extract_close(data, s, single)
             if closes:
-                out[s] = [round(float(c), 4) for c in closes]
+                out[s] = closes
         return out
 
     return _cached(f"batch:{','.join(sorted(symbols))}:{period}", build, ttl=600) or {}
