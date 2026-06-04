@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robinhood Advisor &middot; Weekly Picks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">&#9650;</span>
+      <div>
+        <h1>Robinhood Advisor</h1>
+        <p class="tagline">AI weekly picks &middot; paper-trading simulation</p>
+      </div>
+    </div>
+    <div class="week-block">
+      <div class="week-label" id="week-label">&mdash;</div>
+      <div class="week-sub"><span id="engine-badge" class="badge">&mdash;</span><span id="countdown" class="countdown"></span></div>
+    </div>
+    <button id="refresh-btn" class="refresh">&#8635; Re-evaluate</button>
+  </header>
+
+  <div class="disclaimer" id="disclaimer">
+    &#9888; Algorithmic ideas for a <strong>paper-trading simulation</strong>. Not financial advice &mdash; short-term prices are not reliably predictable. $50/stock is hypothetical.
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="picks">This Week&rsquo;s Picks</button>
+    <button class="tab" data-tab="portfolio">Paper Portfolio</button>
+  </nav>
+
+  <main>
+    <section id="tab-picks" class="tab-panel active">
+      <div id="picks-grid" class="grid">
+        <div class="loading">Loading this week&rsquo;s picks&hellip;</div>
+      </div>
+    </section>
+
+    <section id="tab-portfolio" class="tab-panel">
+      <div class="summary-cards" id="summary-cards"></div>
+      <div class="table-wrap">
+        <table id="portfolio-table">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Entry</th><th>Shares</th><th>Current</th>
+              <th>Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Window</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="8" class="loading">Loading portfolio&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Stock detail drawer -->
+  <div id="overlay" class="overlay hidden"></div>
+  <aside id="detail" class="detail hidden">
+    <button id="detail-close" class="detail-close">&times;</button>
+    <div id="detail-body"></div>
+  </aside>
+
+  <footer class="footer">
+    Data: Yahoo Finance (yfinance) &middot; Picks: <span id="footer-engine">heuristic</span> &middot; Simulation only
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

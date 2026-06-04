@@ -1,88 +1,74 @@
-from flask import Flask, jsonify, request
-import robin_stocks as rh
-from anthropic import Anthropic
+"""Robinhood Advisor -- weekly paper-trading dashboard.
+
+Flask serves a single-page dashboard plus a small JSON API. Market data comes
+from Yahoo Finance (yfinance, no login). Weekly picks come from the advisor
+(heuristic, or Claude if a key is set). The $50/stock portfolio is simulated.
+
+Run:  python app/main.py   ->  http://localhost:5000
+"""
 import os
+
 from dotenv import load_dotenv
+from flask import Flask, jsonify, render_template, request
+
+try:
+    from . import advisor, market_data, paper
+except ImportError:  # allow `python app/main.py` as well as `python -m app.main`
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from app import advisor, market_data, paper
 
 load_dotenv()
 
 app = Flask(__name__)
-client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
 
-# Robinhood credentials
-RH_EMAIL = os.getenv('RH_EMAIL')
-RH_PASSWORD = os.getenv('RH_PASSWORD')
 
-@app.route('/', methods=['GET'])
-def home():
-    return jsonify({"message": "Robinhood Advisor API is running!"})
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-@app.route('/api/login', methods=['POST'])
-def login_robinhood():
-    """Login to Robinhood"""
-    try:
-        result = rh.robinhood.login(RH_EMAIL, RH_PASSWORD)
-        return jsonify({"status": "Logged in successfully"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
 
-@app.route('/api/portfolio', methods=['GET'])
-def get_portfolio():
-    """Get your Robinhood portfolio"""
-    try:
-        rh.robinhood.login(RH_EMAIL, RH_PASSWORD)
-        positions = rh.robinhood.account.build_holdings()
-        portfolio_value = rh.robinhood.account.load_portfolio_profile()
+@app.route("/api/health")
+def health():
+    has_key = bool(
+        (os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
+        and "your_" not in (os.getenv("CLAUDE_API_KEY") or "your_")
+    )
+    return jsonify({"status": "ok", "claude_enabled": has_key})
 
-        return jsonify({
-            "positions": positions,
-            "portfolio_value": portfolio_value
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
 
-@app.route('/api/recommendation', methods=['POST'])
-def get_recommendation():
-    """Get Claude AI investment recommendation"""
-    try:
-        data = request.json
-        portfolio_data = data.get('portfolio', 'No portfolio data provided')
+@app.route("/api/week")
+def week():
+    return jsonify(advisor.get_week())
 
-        prompt = f"""You are an expert investment advisor. Based on this portfolio data, provide 3-5 stock recommendations:
 
-Portfolio Data: {portfolio_data}
+@app.route("/api/week/refresh", methods=["POST"])
+def refresh():
+    """Intraday re-evaluation -- re-pick / re-time for the current week."""
+    return jsonify(advisor.reevaluate())
 
-For each recommendation provide:
-1. Stock ticker
-2. Buy/Hold/Sell recommendation
-3. Why you recommend this
-4. Risk level (Low/Medium/High)
-5. Price target
 
-IMPORTANT: This is not professional financial advice. Always remind users to do their own research."""
+@app.route("/api/portfolio")
+def portfolio():
+    return jsonify(paper.get_portfolio())
 
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1024,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
 
-        return jsonify({
-            "recommendation": message.content[0].text
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+@app.route("/api/stock/<symbol>")
+def stock(symbol):
+    return jsonify({
+        "quote": market_data.get_quote(symbol),
+        "fundamentals": market_data.get_fundamentals(symbol),
+        "news": market_data.get_news(symbol),
+    })
 
-@app.route('/api/quote/<symbol>', methods=['GET'])
-def get_quote(symbol):
-    """Get stock quote"""
-    try:
-        quote = rh.robinhood.get_quotes(symbol)
-        return jsonify(quote)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+@app.route("/api/stock/<symbol>/history")
+def stock_history(symbol):
+    period = request.args.get("range", "6mo")
+    interval = request.args.get("interval", "1d")
+    return jsonify(market_data.get_history(symbol, period=period, interval=interval))
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "5000"))
+    app.run(debug=True, host="0.0.0.0", port=port)
