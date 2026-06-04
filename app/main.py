@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-client = Anthropic()
+client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
 
 # Robinhood credentials
 RH_EMAIL = os.getenv('RH_EMAIL')
@@ -21,7 +21,7 @@ def home():
 def login_robinhood():
     """Login to Robinhood"""
     try:
-        result = rh.login(RH_EMAIL, RH_PASSWORD)
+        result = rh.robinhood.login(RH_EMAIL, RH_PASSWORD)
         return jsonify({"status": "Logged in successfully"})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -30,9 +30,9 @@ def login_robinhood():
 def get_portfolio():
     """Get your Robinhood portfolio"""
     try:
-        rh.login(RH_EMAIL, RH_PASSWORD)
-        positions = rh.account.build_holdings()
-        portfolio_value = rh.account.get_portfolio_value()
+        rh.robinhood.login(RH_EMAIL, RH_PASSWORD)
+        positions = rh.robinhood.account.build_holdings()
+        portfolio_value = rh.robinhood.account.load_portfolio_profile()
 
         return jsonify({
             "positions": positions,
@@ -79,7 +79,7 @@ IMPORTANT: This is not professional financial advice. Always remind users to do 
 def get_quote(symbol):
     """Get stock quote"""
     try:
-        quote = rh.stocks.get_quotes(symbol)
+        quote = rh.robinhood.get_quotes(symbol)
         return jsonify(quote)
     except Exception as e:
         return jsonify({"error": str(e)}), 400

@@ -58,3 +58,22 @@ python app/main.py
 | GET | `/api/portfolio` | Get your portfolio |
 | POST | `/api/recommendation` | Get AI recommendation |
 | GET | `/api/quote/<symbol>` | Get stock quote |
+
+## Testing the API
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the app
+python app/main.py
+
+# In another terminal, test the API:
+curl http://localhost:5000/
+
+# Login to Robinhood:
+curl -X POST http://localhost:5000/api/login
+
+# Get portfolio:
+curl http://localhost:5000/api/portfolio
+```
