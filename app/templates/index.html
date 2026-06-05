@@ -6,9 +6,96 @@
   <title>Robinhood Advisor &middot; Weekly Picks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
-          onerror="this.onerror=null;this.src='{{ url_for('static', filename='vendor/chart.umd.js') }}'"></script>
+  <style>
+:root{--bg:#0b0e11;--bg-2:#12161c;--card:#161b22;--card-2:#1c232c;--border:#232b36;--text:#e6edf3;--muted:#8b97a7;--green:#1ecb81;--green-dim:rgba(30,203,129,0.12);--red:#ff5c5c;--red-dim:rgba(255,92,92,0.12);--accent:#5b8cff;--accent-2:#9d7bff;--yellow:#ffc857}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(1200px 600px at 80% -10%,#18202b 0%,var(--bg) 55%);color:var(--text);min-height:100vh;padding-bottom:60px}
+.topbar{display:flex;align-items:center;gap:20px;padding:18px 28px;border-bottom:1px solid var(--border);background:rgba(11,14,17,0.7);backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:14px;flex:1}
+.logo{font-size:22px;color:var(--green);width:44px;height:44px;display:grid;place-items:center;background:var(--green-dim);border-radius:12px}
+.topbar h1{font-size:18px;font-weight:800;letter-spacing:-0.02em}
+.tagline{font-size:12px;color:var(--muted)}
+.week-block{text-align:right}
+.week-label{font-weight:700;font-size:15px}
+.week-sub{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:4px}
+.badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:3px 9px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
+.badge.heuristic{background:#2a3340;color:var(--muted)}
+.countdown{font-size:12px;color:var(--muted)}
+.refresh{border:1px solid var(--border);background:var(--card-2);color:var(--text);padding:10px 16px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;transition:0.15s}
+.refresh:hover{border-color:var(--accent);color:#fff}
+.refresh:disabled{opacity:0.5;cursor:progress}
+.disclaimer{margin:16px 28px 0;padding:11px 16px;border-radius:10px;background:rgba(255,200,87,0.08);border:1px solid rgba(255,200,87,0.25);color:#f0d9a0;font-size:12.5px}
+.tabs{display:flex;gap:6px;padding:18px 28px 0}
+.tab{background:none;border:none;color:var(--muted);font-weight:600;font-size:14px;padding:10px 16px;cursor:pointer;border-radius:10px 10px 0 0;transition:0.15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:#fff;background:var(--card);border:1px solid var(--border);border-bottom:none}
+main{padding:20px 28px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fade 0.25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.loading{color:var(--muted);padding:40px;text-align:center;grid-column:1/-1}
+.card{background:linear-gradient(180deg,var(--card),var(--bg-2));border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;transition:0.18s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 28px rgba(0,0,0,0.35)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start}
+.sym{font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.price{font-size:16px;font-weight:700}
+.chg{font-size:12px;font-weight:600}
+.up{color:var(--green)}.down{color:var(--red)}
+.risk{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:3px 8px;border-radius:6px}
+.risk.Low{background:var(--green-dim);color:var(--green)}
+.risk.Medium{background:rgba(255,200,87,0.14);color:var(--yellow)}
+.risk.High{background:var(--red-dim);color:var(--red)}
+.window{display:flex;gap:8px;margin:14px 0 10px}
+.daychip{flex:1;text-align:center;padding:8px;border-radius:9px;background:var(--card-2);border:1px solid var(--border)}
+.daychip .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.daychip .day{font-size:13px;font-weight:700;margin-top:2px}
+.daychip.buy{border-color:rgba(30,203,129,0.4)}
+.daychip.buy .day{color:var(--green)}
+.daychip.sell{border-color:rgba(255,92,92,0.4)}
+.daychip.sell .day{color:var(--red)}
+.rationale{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.card-foot{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px}
+.card-foot b{color:var(--text)}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+.scard .k{font-size:12px;color:var(--muted)}
+.scard .v{font-size:24px;font-weight:800;margin-top:6px}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th,td{padding:13px 16px;text-align:right;font-size:13.5px}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em;background:var(--bg-2)}
+tbody tr{border-top:1px solid var(--border);cursor:pointer;transition:0.12s}
+tbody tr:hover{background:var(--card-2)}
+td .tsym{font-weight:700}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:40}
+.detail{position:fixed;top:0;right:0;height:100vh;width:min(560px,94vw);background:var(--bg-2);border-left:1px solid var(--border);z-index:50;overflow-y:auto;padding:26px;transition:transform 0.25s ease}
+.detail.hidden,.overlay.hidden{display:none}
+.detail-close{position:absolute;top:18px;right:20px;background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer}
+.detail-close:hover{color:#fff}
+.d-head{display:flex;align-items:baseline;gap:12px}
+.d-sym{font-size:28px;font-weight:800}
+.d-name{color:var(--muted);font-size:14px}
+.d-price{font-size:30px;font-weight:800;margin:6px 0 2px}
+.d-meta{color:var(--muted);font-size:13px;margin-bottom:16px}
+.chart-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:18px}
+.range-btns{display:flex;gap:6px;margin-bottom:10px}
+.range-btns button{background:var(--card-2);border:1px solid var(--border);color:var(--muted);padding:5px 11px;border-radius:7px;font-size:12px;cursor:pointer}
+.range-btns button.active{color:#fff;border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.stat .k{font-size:11px;color:var(--muted)}
+.stat .v{font-size:15px;font-weight:700;margin-top:3px}
+.d-section-title{font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:6px 0 10px}
+.summary-text{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.news-item{display:block;padding:11px 0;border-top:1px solid var(--border);color:var(--text);text-decoration:none;font-size:13.5px}
+.news-item:hover{color:var(--accent)}
+.news-item .src{color:var(--muted);font-size:11.5px;margin-top:3px}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
+.hidden{display:none}
+@media(max-width:640px){.topbar{flex-wrap:wrap}.week-block{text-align:left}.week-sub{justify-content:flex-start}}
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -58,7 +145,6 @@
     </section>
   </main>
 
-  <!-- Stock detail drawer -->
   <div id="overlay" class="overlay hidden"></div>
   <aside id="detail" class="detail hidden">
     <button id="detail-close" class="detail-close">&times;</button>
@@ -69,6 +155,145 @@
     Data: Yahoo Finance (yfinance) &middot; Picks: <span id="footer-engine">heuristic</span> &middot; Simulation only
   </footer>
 
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+"use strict";
+const $ = (sel) => document.querySelector(sel);
+const fmt = (n, d=2) => n===null||n===undefined||Number.isNaN(n) ? "—" : Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const money = (n) => n===null||n===undefined ? "—" : "$"+fmt(n);
+const pct = (n) => n===null||n===undefined ? "—" : (n>=0?"+":"")+fmt(n)+"%";
+const cls = (n) => n>=0 ? "up" : "down";
+function bigMoney(n){if(n===null||n===undefined)return "—";const a=Math.abs(n);if(a>=1e12)return "$"+(n/1e12).toFixed(2)+"T";if(a>=1e9)return "$"+(n/1e9).toFixed(2)+"B";if(a>=1e6)return "$"+(n/1e6).toFixed(2)+"M";return money(n)}
+
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    $("#tab-"+t.dataset.tab).classList.add("active");
+    if(t.dataset.tab==="portfolio")loadPortfolio();
+  });
+});
+
+async function loadWeek(){
+  const res=await fetch("/api/week");
+  const data=await res.json();
+  renderWeek(data);
+}
+function renderWeek(data){
+  $("#week-label").textContent=data.label||"—";
+  const badge=$("#engine-badge");
+  badge.textContent=data.engine==="claude"?"Claude AI":"Heuristic";
+  badge.className="badge "+(data.engine==="claude"?"":"heuristic");
+  $("#footer-engine").textContent=data.engine;
+  if(data.disclaimer)$("#disclaimer").innerHTML="&#9888; "+data.disclaimer;
+  const grid=$("#picks-grid");
+  if(!data.picks||!data.picks.length){grid.innerHTML='<div class="loading">No picks available right now.</div>';return;}
+  grid.innerHTML=data.picks.map(cardHTML).join("");
+  data.picks.forEach(p=>{$("#card-"+p.symbol).addEventListener("click",()=>openDetail(p.symbol));});
+}
+function cardHTML(p){
+  const chg=p.signals?p.signals.ret_5d:null;
+  return `<div class="card" id="card-${p.symbol}">
+    <div class="card-head"><div><div class="sym">${p.symbol}</div><div class="chg ${cls(chg??0)}">${pct(chg)} <span style="color:var(--muted)">5d</span></div></div>
+    <div style="text-align:right"><div class="price">${money(p.price_at_pick)}</div><span class="risk ${p.risk}">${p.risk}</span></div></div>
+    <div class="window"><div class="daychip buy"><div class="lbl">Buy</div><div class="day">${p.buy_day}</div></div><div class="daychip sell"><div class="lbl">Sell</div><div class="day">${p.sell_day}</div></div></div>
+    <div class="rationale">${p.rationale||""}</div>
+    <div class="card-foot"><span>Budget <b>${money(p.budget)}</b> &middot; ${fmt(p.shares,3)} sh</span><span>Target <b>${money(p.target)}</b></span></div>
+  </div>`;
+}
+
+async function loadPortfolio(){
+  const res=await fetch("/api/portfolio");
+  const data=await res.json();
+  const s=data.summary;
+  $("#summary-cards").innerHTML=`
+    <div class="scard"><div class="k">Invested</div><div class="v">${money(s.invested)}</div></div>
+    <div class="scard"><div class="k">Current Value</div><div class="v">${money(s.value)}</div></div>
+    <div class="scard"><div class="k">Total P&L</div><div class="v ${cls(s.pnl)}">${money(s.pnl)}</div></div>
+    <div class="scard"><div class="k">Return</div><div class="v ${cls(s.pnl_pct)}">${pct(s.pnl_pct)}</div></div>
+    <div class="scard"><div class="k">Positions</div><div class="v">${s.num_positions}</div></div>`;
+  const tbody=$("#portfolio-table tbody");
+  tbody.innerHTML=data.positions.map(r=>`<tr data-sym="${r.symbol}">
+    <td><span class="tsym">${r.symbol}</span></td><td>${money(r.entry_price)}</td><td>${fmt(r.shares,3)}</td>
+    <td>${money(r.current_price)}</td><td>${money(r.current_value)}</td>
+    <td class="${cls(r.pnl)}">${money(r.pnl)}</td><td class="${cls(r.pnl_pct)}">${pct(r.pnl_pct)}</td>
+    <td style="color:var(--muted)">${r.buy_day}&rarr;${r.sell_day}</td></tr>`).join("");
+  tbody.querySelectorAll("tr").forEach(tr=>tr.addEventListener("click",()=>openDetail(tr.dataset.sym)));
+}
+
+let chart=null;
+function closeDetail(){
+  $("#detail").classList.add("hidden");
+  $("#overlay").classList.add("hidden");
+  if(chart){chart.destroy();chart=null;}
+}
+$("#detail-close").addEventListener("click",closeDetail);
+$("#overlay").addEventListener("click",closeDetail);
+
+async function openDetail(symbol){
+  $("#overlay").classList.remove("hidden");
+  $("#detail").classList.remove("hidden");
+  $("#detail-body").innerHTML='<div class="loading">Loading '+symbol+"…</div>";
+  const res=await fetch("/api/stock/"+symbol);
+  const d=await res.json();
+  const q=d.quote||{};
+  const f=d.fundamentals||{};
+  const name=f.longName||f.shortName||symbol;
+  $("#detail-body").innerHTML=`
+    <div class="d-head"><span class="d-sym">${symbol}</span><span class="d-name">${name}</span></div>
+    <div class="d-price">${money(q.price)}</div>
+    <div class="d-meta ${cls(q.change_pct??0)}">${money(q.change)} (${pct(q.change_pct)}) today <span style="color:var(--muted)">&middot; ${f.sector||""}</span></div>
+    <div class="range-btns" id="range-btns">${["1mo","6mo","1y","5y"].map(r=>`<button data-range="${r}" class="${r==="6mo"?"active":""}">${r}</button>`).join("")}</div>
+    <div class="chart-box"><canvas id="price-chart" height="190"></canvas></div>
+    <div class="stats">
+      ${stat("Market Cap",bigMoney(q.market_cap))}${stat("P/E (TTM)",fmt(f.trailingPE))}
+      ${stat("52w High",money(q.year_high))}${stat("52w Low",money(q.year_low))}
+      ${stat("Beta",fmt(f.beta))}${stat("Div Yield",f.dividendYield?fmt(f.dividendYield)+"%":"—")}
+      ${stat("EPS (TTM)",fmt(f.trailingEps))}${stat("Avg Volume",q.volume?bigMoney(f.averageVolume).replace("$",""):"—")}
+    </div>
+    ${f.longBusinessSummary?`<div class="d-section-title">About</div><div class="summary-text">${f.longBusinessSummary.slice(0,420)}…</div>`:""}
+    <div class="d-section-title">Recent News</div>
+    <div id="news-list">${(d.news&&d.news.length)?d.news.map(newsHTML).join(""):'<div style="color:var(--muted);font-size:13px">No recent headlines.</div>'}</div>`;
+  $("#range-btns").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    $("#range-btns .active")?.classList.remove("active");b.classList.add("active");loadChart(symbol,b.dataset.range);
+  }));
+  loadChart(symbol,"6mo");
+}
+const stat=(k,v)=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+function newsHTML(n){return `<a class="news-item" href="${n.link||"#"}" target="_blank" rel="noopener">${n.title}<div class="src">${n.publisher||""}</div></a>`;}
+
+async function loadChart(symbol,range){
+  const res=await fetch(`/api/stock/${symbol}/history?range=${range}`);
+  const hist=await res.json();
+  if(chart)chart.destroy();
+  const labels=hist.map(h=>h.t.slice(0,10));
+  const data=hist.map(h=>h.close);
+  const up=data.length&&data[data.length-1]>=data[0];
+  const color=up?"#1ecb81":"#ff5c5c";
+  const ctx=$("#price-chart").getContext("2d");
+  const grad=ctx.createLinearGradient(0,0,0,190);
+  grad.addColorStop(0,up?"rgba(30,203,129,0.32)":"rgba(255,92,92,0.32)");
+  grad.addColorStop(1,"rgba(0,0,0,0)");
+  chart=new Chart(ctx,{type:"line",data:{labels,datasets:[{data,borderColor:color,backgroundColor:grad,fill:true,borderWidth:2,pointRadius:0,tension:0.25}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},scales:{x:{ticks:{color:"#8b97a7",maxTicksLimit:6},grid:{display:false}},y:{ticks:{color:"#8b97a7",callback:v=>"$"+v},grid:{color:"#1c232c"}}}}});
+}
+
+$("#refresh-btn").addEventListener("click",async()=>{
+  const btn=$("#refresh-btn");btn.disabled=true;btn.textContent="Re-evaluating…";
+  try{const res=await fetch("/api/week/refresh",{method:"POST"});renderWeek(await res.json());loadPortfolio();}
+  finally{btn.disabled=false;btn.innerHTML="&#8635; Re-evaluate";}
+});
+
+function updateCountdown(){
+  const now=new Date();const day=now.getDay();const daysToSat=(6-day+7)%7||7;
+  const next=new Date(now);next.setDate(now.getDate()+daysToSat);next.setHours(0,0,0,0);
+  const h=Math.floor((next-now)/3.6e6);
+  $("#countdown").textContent=`· new picks in ${Math.floor(h/24)}d ${h%24}h`;
+}
+
+loadWeek();
+updateCountdown();
+setInterval(updateCountdown,60000);
+  </script>
 </body>
 </html>
